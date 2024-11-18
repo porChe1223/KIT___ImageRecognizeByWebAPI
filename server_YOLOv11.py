@@ -24,10 +24,10 @@ print('モデル呼び出し完了')
 # res = model.train(data="coco8.yaml", epochs=100, imgsz=640)
 # print('モデルのトレーニング完了')
 
-# 認識結果の文章化
+# 認識結果
 def generate_description(detected_objects):
     if not detected_objects:
-        return 'この写真には何も写っていません。'
+        result_sentence = 'この写真には何も写っていません。'
     
     descriptions = []
     for obj in detected_objects:
@@ -36,12 +36,22 @@ def generate_description(detected_objects):
         
         # 単数形・複数形の処理
         if count == 1:
-            descriptions.append(f"1 {label}")
+            descriptions.append(f"1 個の {label}")
         else:
-            descriptions.append(f"{count} {label}s")
+            descriptions.append(f"{count} 個の {label}")
     
-    # 文を生成（例: "4 persons, 1 car, and 1 sports ball are in the image."）
-    result_sentence = ", ".join(descriptions[:-1]) + f", and {descriptions[-1]} are in the image."
+    # 認識したものの列挙
+    result_sentence = "と ".join(descriptions[:-1]) + f"と {descriptions[-1]} がこの写真から見られます。"
+    return result_sentence
+
+
+# YOLOの分析
+def consider_description(list):
+    if any(obj["label"] == "person" for obj in list):
+        result_sentence = "人がいます"
+    else:
+        result_sentence = "人がいません"
+    
     return result_sentence
 
 
@@ -72,14 +82,18 @@ class ImageRecognize(object):
                 else:
                     detected_objects[label_name] = 1
 
-            # 検出内容を文章化
+            # 検出物を列挙
             detected_list = [{"label": label, "count": count} for label, count in detected_objects.items()]
             response_text = generate_description(detected_list)
 
+            # 検出結果から考察
+            consider_text = consider_description(detected_list)
+
             # レスポンスデータの作成
             res.media = {
-                'YOLOの返答': detected_list,
-                'description': response_text
+                # 'YOLOの認識': detected_list,
+                '情報': response_text,
+                'YOLOの分析': consider_text
             }
         else:
             res.status = falcon.HTTP_400
