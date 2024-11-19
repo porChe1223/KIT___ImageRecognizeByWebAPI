@@ -48,9 +48,20 @@ def generate_description(detected_objects):
 # YOLOの分析
 def consider_description(list):
     if any(obj["label"] == "person" for obj in list):
-        result_sentence = "人がいます"
+        if any(obj["label"] == "sports ball" for obj in list):
+            result_sentence = "ボールで遊んでいます"
+        elif any(obj["label"] == "teddy bear" for obj in list):
+            result_sentence = "テディベアが人といます"
+        else:
+            result_sentence = "人がいます"
     else:
-        result_sentence = "人がいません"
+        if any(obj["label"] == "teddy bear" for obj in list):
+            if any(obj["label"] == "chair" for obj in list):
+                result_sentence = "テディベアが椅子に座っています"
+            else:
+                result_sentence = "テディベアが置かれています"
+        else:
+            result_sentence = "人がいません"
     
     return result_sentence
 
