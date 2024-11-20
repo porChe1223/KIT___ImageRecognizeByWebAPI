@@ -24,7 +24,10 @@ print('モデル呼び出し完了')
 # res = model.train(data="coco8.yaml", epochs=100, imgsz=640)
 # print('モデルのトレーニング完了')
 
-# 検出結果
+###############################################
+# 検出結果　　　　　　　　　　　　　　　　　　    #
+# -検出した物体の位置・確率・名前を文にして出力　 #
+###############################################
 def generate_description(detected_objects):
     if not detected_objects:
         result_sentence = 'この写真には何も写っていません。'
@@ -44,18 +47,22 @@ def generate_description(detected_objects):
     return result_sentence
 
 
-# YOLOの分析
+############################################
+# 分析結果　　　　　　　　　　　　　　　　　　 #
+# -確率の低い物体は除外　　　　　　　　　　　　#
+# -位置関係から予測　　　　　　　　　　　　　　#
+############################################
 def consider_description(list):
-    if any(obj["label"] == "person" for obj in list):
-        if any(obj["label"] == "sports ball" for obj in list):
+    if any(obj["物体"] == "person" for obj in list):
+        if any(obj["物体"] == "sports ball" for obj in list):
             result_sentence = "ボールで遊んでいます"
-        elif any(obj["label"] == "teddy bear" for obj in list):
+        elif any(obj["物体"] == "teddy bear" for obj in list):
             result_sentence = "テディベアが人といます"
         else:
             result_sentence = "人がいます"
     else:
-        if any(obj["label"] == "teddy bear" for obj in list):
-            if any(obj["label"] == "chair" for obj in list):
+        if any(obj["物体"] == "teddy bear" for obj in list):
+            if any(obj["物体"] == "chair" for obj in list):
                 result_sentence = "テディベアが椅子に座っています"
             else:
                 result_sentence = "テディベアが置かれています"
@@ -65,7 +72,9 @@ def consider_description(list):
     return result_sentence
 
 
-# 画像認識システム（YOLOv11）
+############################################
+# 画像認識システム（YOLOv11）              　#
+############################################
 class ImageRecognize(object):
     def on_post(self, req, res):
         # 送られてきた画像パス名を取得
@@ -99,13 +108,13 @@ class ImageRecognize(object):
             # 検出結果
             res_description = generate_description(detected_objects)
 
-            # # 検出結果から考察
-            # consider_text = consider_description(detected_list)
+            # 分析結果
+            res_consider = consider_description(detected_objects)
 
             # レスポンスデータの作成
             res.media = {
                 '検出結果': res_description,
-                # 'YOLOの分析': consider_text
+                '分析結果': res_consider
             }
         else:
             res.status = falcon.HTTP_400
