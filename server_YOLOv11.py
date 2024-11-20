@@ -28,12 +28,12 @@ print('モデル呼び出し完了')
 # 検出結果　　　　　　　　　　　　　　　　　　    #
 # -検出した物体の位置・確率・名前を文にして出力　 #
 ###############################################
-def generate_description(detected_objects):
-    if not detected_objects:
+def generate_description(list):
+    if not list:
         result_sentence = 'この写真には何も写っていません。'
     
     descriptions = []
-    for obj in detected_objects:
+    for obj in list:
         place = obj['境界']
         confidence = obj['確率']
         label = obj['物体']
@@ -49,22 +49,45 @@ def generate_description(detected_objects):
 
 ###############################################
 # 検出結果厳選　　　　　　　　　　　　　　　　　  #
-# -検出した物体を確率で絞る　 　　　　　　　　　　#
+# -検出した物体を確率で絞る　　 　　　　　　　　　#
 ###############################################
-def select_objects(detected_objects):
+def select_objects(list):
     select_objects = []
-    for obj in detected_objects:
-        if obj['確率'] >= 0.6:
+    for obj in list:
+        if obj['確率'] >= 0.7:
             select_objects.append(obj)
 
     return select_objects
 
 
-############################################
-# 分析結果　　　　　　　　　　　　　　　　　　 #
-# -確率の低い物体は除外　　　　　　　　　　　　#
-# -位置関係から予測　　　　　　　　　　　　　　#
-############################################
+###############################################
+# 厳選結果表示　　　　　　　　　　　　　　　　　  #
+# -検出した物体を文にして出力　 　　　　　　　　　#
+###############################################
+def select_objects_sentence(list):
+    if not list:
+        result_sentence = 'この写真には何も有力なものは写っていません。'
+    
+    descriptions = []
+    for obj in list:
+        place = obj['境界']
+        confidence = obj['確率']
+        label = obj['物体']
+
+        descriptions.append(f'{place}の位置に')
+        descriptions.append(f'{confidence}の確率で')
+        descriptions.append(f'{label}が存在。')
+
+    # 厳選したものの列挙
+    result_sentence = '有力なものの候補として、' + ''.join(descriptions)
+    return result_sentence
+
+
+###############################################
+# 分析結果　　　　　　　　　　　　　　　　　　    #
+# -確率の低い物体は除外　　　　　　　　　　　　   #
+# -位置関係から予測　　　　　　　　　　　　　　   #
+###############################################
 def consider_description(list):
     if any(obj["物体"] == "person" for obj in list):
         if any(obj["物体"] == "sports ball" for obj in list):
@@ -102,7 +125,7 @@ class ImageRecognize(object):
             results = model(image_url, save=True, show=True)
             print('YOLOの返答', results)
 
-            #resultsオブジェクトの情報をリストに格納
+            #resultsオブジェクトの情報をリスト形式で取得
             detected_objects = []
             for box in results[0].boxes.data.tolist():
                 label_index = int(box[5]) if len(box) > 5 else -1
@@ -123,6 +146,7 @@ class ImageRecognize(object):
 
             # 厳選結果
             selected_objects = select_objects(detected_objects)
+            res_select = select_objects_sentence(selected_objects)
 
             # 分析結果
             res_consider = consider_description(detected_objects)
@@ -130,7 +154,7 @@ class ImageRecognize(object):
             # レスポンスデータの作成
             res.media = {
                 '検出結果': res_description,
-                '厳選結果': selected_objects,
+                '厳選結果': res_select,
                 '分析結果': res_consider
             }
         else:
