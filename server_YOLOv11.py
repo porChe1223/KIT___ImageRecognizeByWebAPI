@@ -24,24 +24,23 @@ print('モデル呼び出し完了')
 # res = model.train(data="coco8.yaml", epochs=100, imgsz=640)
 # print('モデルのトレーニング完了')
 
-# 認識結果
+# 検出結果
 def generate_description(detected_objects):
     if not detected_objects:
         result_sentence = 'この写真には何も写っていません。'
     
     descriptions = []
     for obj in detected_objects:
-        count = obj["count"]
-        label = obj["label"]
-        
-        # 単数形・複数形の処理
-        if count == 1:
-            descriptions.append(f"1 個の {label}")
-        else:
-            descriptions.append(f"{count} 個の {label}")
+        place = obj['境界']
+        confidence = obj['確率']
+        label = obj['物体']
+
+        descriptions.append(f'{place}の位置に')
+        descriptions.append(f'{confidence}の確率で')
+        descriptions.append(f'{label}が存在。')
     
     # 認識したものの列挙
-    result_sentence = "と ".join(descriptions[:-1]) + f"と {descriptions[-1]} がこの写真から見られます。"
+    result_sentence = ''.join(descriptions)
     return result_sentence
 
 
@@ -95,17 +94,17 @@ class ImageRecognize(object):
                     '確率': label_confidence,
                     '境界': {'左端': x1, '上端': y1, '右端': x2, '下端': y2}
                 })
+            print(detected_objects)
 
-            # # 検出物を列挙
-            # response_text = generate_description(detected_list)
+            # 検出結果
+            res_description = generate_description(detected_objects)
 
             # # 検出結果から考察
             # consider_text = consider_description(detected_list)
 
             # レスポンスデータの作成
             res.media = {
-                '検出結果': detected_objects,
-                # '情報': response_text,
+                '検出結果': res_description,
                 # 'YOLOの分析': consider_text
             }
         else:
