@@ -47,6 +47,19 @@ def generate_description(detected_objects):
     return result_sentence
 
 
+###############################################
+# 検出結果厳選　　　　　　　　　　　　　　　　　  #
+# -検出した物体を確率で絞る　 　　　　　　　　　　#
+###############################################
+def select_objects(detected_objects):
+    select_objects = []
+    for obj in detected_objects:
+        if obj['確率'] >= 0.6:
+            select_objects.append(obj)
+
+    return select_objects
+
+
 ############################################
 # 分析結果　　　　　　　　　　　　　　　　　　 #
 # -確率の低い物体は除外　　　　　　　　　　　　#
@@ -108,12 +121,16 @@ class ImageRecognize(object):
             # 検出結果
             res_description = generate_description(detected_objects)
 
+            # 厳選結果
+            selected_objects = select_objects(detected_objects)
+
             # 分析結果
             res_consider = consider_description(detected_objects)
 
             # レスポンスデータの作成
             res.media = {
                 '検出結果': res_description,
+                '厳選結果': selected_objects,
                 '分析結果': res_consider
             }
         else:
