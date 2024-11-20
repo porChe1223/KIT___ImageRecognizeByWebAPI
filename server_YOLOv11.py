@@ -16,12 +16,12 @@ app = falcon.App()
 
 # モデルの選択
 print('モデル呼び出し中')
-model = YOLO("yolo11n.pt")
+model = YOLO('yolo11n.pt')
 print('モデル呼び出し完了')
 
 # # モデルのトレーニング
 # print('モデルのトレーニング中')
-# res = model.train(data="coco8.yaml", epochs=100, imgsz=640)
+# res = model.train(data='coco8.yaml', epochs=100, imgsz=640)
 # print('モデルのトレーニング完了')
 
 ###############################################
@@ -48,7 +48,7 @@ def generate_description(list):
 
 
 ###############################################
-# 検出結果厳選　　　　　　　　　　　　　　　　　  #
+# 厳選結果　　　　　　　　　　　　　　　　　　　  #
 # -検出した物体を確率で絞る　　 　　　　　　　　　#
 ###############################################
 def select_objects(list):
@@ -89,21 +89,23 @@ def select_objects_sentence(list):
 # -位置関係から予測　　　　　　　　　　　　　　   #
 ###############################################
 def consider_description(list):
-    if any(obj["物体"] == "person" for obj in list):
-        if any(obj["物体"] == "sports ball" for obj in list):
-            result_sentence = "ボールで遊んでいます"
-        elif any(obj["物体"] == "teddy bear" for obj in list):
-            result_sentence = "テディベアが人といます"
+    if any(obj['物体'] == 'person' for obj in list):
+        if any(obj['物体'] == 'sports ball' for obj in list):
+            result_sentence = 'ボールで遊んでいます。'
+        elif any(obj['物体'] == 'teddy bear' for obj in list):
+            result_sentence = 'テディベアが人といます。'
+        elif any(obj['物体'] == 'car' for obj in list):
+            result_sentence = '人が車に乗っています。'
         else:
-            result_sentence = "人がいます"
+            result_sentence = '人がいます。'
     else:
-        if any(obj["物体"] == "teddy bear" for obj in list):
-            if any(obj["物体"] == "chair" for obj in list):
-                result_sentence = "テディベアが椅子に座っています"
+        if any(obj['物体'] == 'teddy bear' for obj in list):
+            if any(obj['物体'] == 'chair' for obj in list):
+                result_sentence = 'テディベアが椅子に座っています。'
             else:
-                result_sentence = "テディベアが置かれています"
+                result_sentence = 'テディベアが置かれています。'
         else:
-            result_sentence = "人がいません"
+            result_sentence = '人がいません。'
     
     return result_sentence
 
@@ -129,7 +131,7 @@ class ImageRecognize(object):
             detected_objects = []
             for box in results[0].boxes.data.tolist():
                 label_index = int(box[5]) if len(box) > 5 else -1
-                label_name = results[0].names[label_index] if label_index in results[0].names else "不明"
+                label_name = results[0].names[label_index] if label_index in results[0].names else '不明'
                 label_confidence = box[4]
                 x1, y1, x2, y2 = box[:4]
 
@@ -149,7 +151,7 @@ class ImageRecognize(object):
             res_select = select_objects_sentence(selected_objects)
 
             # 分析結果
-            res_consider = consider_description(detected_objects)
+            res_consider = consider_description(selected_objects)
 
             # レスポンスデータの作成
             res.media = {
@@ -164,7 +166,7 @@ class ImageRecognize(object):
 # リソース【/Sample3App】 と　AppResource()を結びつける
 app.add_route(serverAPIname, ImageRecognize())
 
-if __name__ == "__main__":  #main処理
+if __name__ == '__main__':  #main処理
     with make_server('', serverPort, app) as httpd:
         print('- アクセスURL ->  http://{}:{}{}'.format(serverIPAddress, serverPort,serverAPIname))
     
