@@ -81,30 +81,32 @@ class ImageRecognize(object):
             results = model(image_url, save=True, show=True)
             print('YOLOの返答', results)
 
-            #resultsオブジェクトをJSON型に変換
-            detected_objects = {}
+            #resultsオブジェクトの情報をリストに格納
+            detected_objects = []
             for box in results[0].boxes.data.tolist():
                 label_index = int(box[5]) if len(box) > 5 else -1
-                label_name = results[0].names[label_index] if label_index in results[0].names else "Unknown"
-                
-                # 検出数をカウント
-                if label_name in detected_objects:
-                    detected_objects[label_name] += 1
-                else:
-                    detected_objects[label_name] = 1
+                label_name = results[0].names[label_index] if label_index in results[0].names else "不明"
+                label_confidence = box[4]
+                x1, y1, x2, y2 = box[:4]
 
-            # 検出物を列挙
-            detected_list = [{"label": label, "count": count} for label, count in detected_objects.items()]
-            response_text = generate_description(detected_list)
+                # 検出物をリストに追加
+                detected_objects.append({
+                    '物体': label_name,
+                    '確率': label_confidence,
+                    '境界': {'左端': x1, '上端': y1, '右端': x2, '下端': y2}
+                })
 
-            # 検出結果から考察
-            consider_text = consider_description(detected_list)
+            # # 検出物を列挙
+            # response_text = generate_description(detected_list)
+
+            # # 検出結果から考察
+            # consider_text = consider_description(detected_list)
 
             # レスポンスデータの作成
             res.media = {
-                # 'YOLOの認識': detected_list,
-                '情報': response_text,
-                'YOLOの分析': consider_text
+                '検出結果': detected_objects,
+                # '情報': response_text,
+                # 'YOLOの分析': consider_text
             }
         else:
             res.status = falcon.HTTP_400
