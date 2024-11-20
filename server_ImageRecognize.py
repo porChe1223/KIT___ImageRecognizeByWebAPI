@@ -9,7 +9,7 @@ from wsgiref.simple_server import make_server
 # サーバを作成
 serverIPAddress='127.0.0.1' #サーバIPアドレス
 serverPort=60003 #サーバポート番号
-serverAPIname='/server_YOLOv11' #サービスAPIの名前
+serverAPIname='/server_ImageRecognize' #サービスAPIの名前
 
 #falconAPIの初期化
 app = falcon.App()
@@ -163,7 +163,8 @@ class ImageRecognize(object):
             res.status = falcon.HTTP_400
             res.media = {'error': '画像が指定されていません。'}
 
-# リソース【/Sample3App】 と　AppResource()を結びつける
+
+# リソース【/server_YOLOv11】 と　AppResource()を結びつける
 app.add_route(serverAPIname, ImageRecognize())
 
 if __name__ == '__main__':  #main処理

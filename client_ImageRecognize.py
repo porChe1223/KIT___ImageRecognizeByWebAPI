@@ -1,7 +1,7 @@
 import requests
 
 #サーバIPアドレス
-server_url = 'http://127.0.0.1:60003/server_YOLOv11'
+server_url = 'http://127.0.0.1:60003/server_ImageRecognize'
 
 # 送信データ
 post_data = {
