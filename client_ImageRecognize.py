@@ -23,7 +23,9 @@ while(1):
     # throwing_ball.jpg
     # person_table_chair.jpg
     # person_chair.jpg
-    # teddybear_chair.jpg
+    # standing_near_car.jpg
+    # sitting_near_car.jpg
+    # riding_car.jpg
 
     # POSTリクエストの送信
     response = requests.post(server_url, json=post_data).json()
