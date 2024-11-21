@@ -18,10 +18,11 @@ while(1):
     }
 
     # 画像パス例
-    # person_chair.jpg
+    # kicking_ball.jpeg
+    # holding_ball.jpg
+    # throwing_ball.jpg
     # person_table_chair.jpg
-    # playing_basketball.png
-    # children_playing_football.jpeg
+    # person_chair.jpg
     # teddybear_chair.jpg
 
     # POSTリクエストの送信
