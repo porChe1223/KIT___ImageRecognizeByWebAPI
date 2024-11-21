@@ -8,7 +8,7 @@ post_data = {
     'image': '/home/porche1223/3-3___WebAPI画像処理システム/ImageRecognizeByWebAPI/WebAPI_Dataset/person_chair.jpg'
 }
 # POSTリクエストの送信
-response = requests.post(server_url, json=post_data)
+response = requests.post(server_url, json=post_data).json()
 
-print("Status Code:", response.status_code)
-print("Response Data:", response.json())
+print('検出結果： ', response['検出結果'])
+print('予測結果： ', response['分析結果'])
