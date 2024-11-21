@@ -25,6 +25,7 @@ print('モデル呼び出し完了')
 # res = model.train(data='coco8.yaml', epochs=100, imgsz=640)
 # print('モデルのトレーニング完了')
 
+
 ###############################################
 # 検出結果　　　　　　　　　　　　　　　　　　    #
 # -検出した物体の位置・確率・名前を文にして出力　 #
@@ -55,7 +56,7 @@ def generate_description(list):
 def select_objects(list):
     select_objects = []
     for obj in list:
-        if obj['確率'] >= 0.7:
+        if obj['確率'] >= 0.65:
             select_objects.append(obj)
 
     return select_objects
@@ -85,11 +86,12 @@ def select_objects_sentence(list):
 
 
 ###############################################
-# 分析結果　　　　　　　　　　　　　　　　　　    #
+# 分析条件　　　　　　　　　　　　　　　　　　    #
 # -バウンディングボックスの中心座標を計算　　　　 #
-# -2つのボックス間の距離を計算　　　　　　　　　　#
-# -2つのボックスが重なっているかどうかを判定　　　#
-# -位置関係から予測　　　　　　　　　　　　　　   #
+# -ボックス間の距離を計算　　　　　　　　　　　　 #
+# -ボックス間の頂点の差を計算　　　　　　　　　　 #
+# -ボックス間の底の差を計算　　　　　　　　　　　 #
+# -ボックスが重なっているかどうかを判定　　　　　 #
 ###############################################
 def get_center(box):
     x1, y1, x2, y2 = box
@@ -99,6 +101,11 @@ def get_distance(box1, box2):
     center1 = get_center(box1)
     center2 = get_center(box2)
     return math.sqrt((center1[0] - center2[0])**2 + (center1[1] - center2[1])**2)
+
+def get_top_distance(box1, box2):
+    x1_1, y1_1, x2_1, y2_1 = box1
+    x1_2, y1_2, x2_2, y2_2 = box2
+    return y1_1 - y1_2
 
 def get_buttom_distance(box1, box2):
     x1_1, y1_1, x2_1, y2_1 = box1
@@ -132,13 +139,18 @@ def is_overlapping(box1, box2, percent):
 
     return overlap_ratio >= percent
 
+
+###############################################
+# 分析結果　　　　　　　　　　　　　　　　　　    #
+# -位置関係から予測　　　　　　　　　　　　　　   #
+###############################################
 def consider_description(list):
     for obj1 in list:
         for obj2 in list:
             if obj1 == obj2:
                 continue
 
-            # サッカーをしている
+            # ボールを蹴っている・持っている・投げている
             if obj1['物体'] == 'person' and obj2['物体'] == 'sports ball':
                 buttom_distance = get_buttom_distance(obj1['境界'].values(), obj2['境界'].values())
                 if buttom_distance <= 50:
@@ -149,7 +161,7 @@ def consider_description(list):
                     else:
                         return '人がボールを投げています。'
                 
-            # 椅子または机に座っている
+            # 席についている・椅子に座っている
             if obj1['物体'] == 'chair' and obj2['物体'] == 'person':
                 if is_overlapping(obj1['境界'].values(), obj2['境界'].values(), 0.8):
                     for obj3 in list:
@@ -158,12 +170,18 @@ def consider_description(list):
                                 return '人が席についています。'
                     return '人が椅子に座っています。'
 
-            # 車に乗っている
-            if obj1['物体'] == 'person' and obj2['物体'] == 'car':
-                if is_overlapping(obj1['境界'].values(), obj2['境界'].values()):
-                    return '人が車に乗っています。'
+            # 車に乗っている・車のそばに立っている
+            if obj1['物体'] == 'car' and obj2['物体'] == 'person':
+                top_distance = get_top_distance(obj1['境界'].values(), obj2['境界'].values())
+                if top_distance >= 50:
+                    return '人が車のそばに立っています。'
+                else:
+                    if is_overlapping(obj1['境界'].values(), obj2['境界'].values(), 0.9):
+                        return '人が車に乗っています。'
+                    else:
+                        return '人が車のそばに座っています。'
 
-    return '特に目立ったアクティビティは検出されませんでした。'
+    return '分析に必要な検出結果が不十分です。他の画像を指定してください。'
 
 
 ############################################
