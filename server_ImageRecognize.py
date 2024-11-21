@@ -100,6 +100,11 @@ def get_distance(box1, box2):
     center2 = get_center(box2)
     return math.sqrt((center1[0] - center2[0])**2 + (center1[1] - center2[1])**2)
 
+def get_buttom_distance(box1, box2):
+    x1_1, y1_1, x2_1, y2_1 = box1
+    x1_2, y1_2, x2_2, y2_2 = box2
+    return math.sqrt((y2_1 - y2_2)**2)
+
 def is_overlapping(box1, box2, percent):
     x1_1, y1_1, x2_1, y2_1 = box1
     x1_2, y1_2, x2_2, y2_2 = box2
@@ -135,9 +140,14 @@ def consider_description(list):
 
             # サッカーをしている
             if obj1['物体'] == 'person' and obj2['物体'] == 'sports ball':
-                distance = get_distance(obj1['境界'].values(), obj2['境界'].values())
-                if distance < 200:
-                    return '人がサッカーをしています。'
+                buttom_distance = get_buttom_distance(obj1['境界'].values(), obj2['境界'].values())
+                if buttom_distance <= 50:
+                    return '人がボールを蹴っています。'
+                else:
+                    if is_overlapping(obj1['境界'].values(), obj2['境界'].values(), 0.8):
+                        return '人がボールを持っています。'
+                    else:
+                        return '人がボールを投げています。'
                 
             # 椅子または机に座っている
             if obj1['物体'] == 'chair' and obj2['物体'] == 'person':
@@ -145,7 +155,7 @@ def consider_description(list):
                     for obj3 in list:
                         if obj3['物体'] == 'dining table':
                             if is_overlapping(obj3['境界'].values(), obj2['境界'].values(), 0.15):
-                                return '人が机に座っています。'
+                                return '人が席についています。'
                     return '人が椅子に座っています。'
 
             # 車に乗っている
