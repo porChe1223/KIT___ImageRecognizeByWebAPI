@@ -143,45 +143,68 @@ def is_overlapping(box1, box2, percent):
 ###############################################
 # 分析結果　　　　　　　　　　　　　　　　　　    #
 # -位置関係から予測　　　　　　　　　　　　　　   #
+# -判定ルールの定義(辞書を格納したリスト)　　　　 #
+# -ルールを適用して判定　　　　　　　　　　　 　  #
 ###############################################
 def consider_description(list):
+    rules = [
+        {
+            "対象物": ("person", "sports ball"),
+            "判定": lambda obj1, obj2: get_buttom_distance(obj1['境界'].values(), obj2['境界'].values()) <= 50,
+            "結果": "人がボールを蹴っています。"
+        },
+        {
+            "対象物": ("person", "sports ball"),
+            "判定": lambda obj1, obj2: is_overlapping(obj1['境界'].values(), obj2['境界'].values(), 0.8),
+            "結果": "人がボールを持っています。"
+        },
+        {
+            "対象物": ("person", "sports ball"),
+            "判定": lambda obj1, obj2: True,
+            "結果": "人がボールを投げています。"
+        },
+        {
+            "対象物": ("chair", "person"),
+            "判定": lambda obj1, obj2: is_overlapping(obj1['境界'].values(), obj2['境界'].values(), 0.8),
+            "追加判定": lambda obj2, list: any(
+                obj3['物体'] == 'dining table' and is_overlapping(obj3['境界'].values(), obj2['境界'].values(), 0.15)
+                for obj3 in list
+            ),
+            "結果": ["人が席についています。", "人が椅子に座っています。"]
+        },
+        {
+            "対象物": ("car", "person"),
+            "判定": lambda obj1, obj2: get_top_distance(obj1['境界'].values(), obj2['境界'].values()) >= 50,
+            "結果": "人が車のそばに立っています。"
+        },
+        {
+            "対象物": ("car", "person"),
+            "判定": lambda obj1, obj2: is_overlapping(obj1['境界'].values(), obj2['境界'].values(), 0.9),
+            "結果": "人が車に乗っています。"
+        },
+        {
+            "対象物": ("car", "person"),
+            "判定": lambda obj1, obj2: True,
+            "結果": "人が車のそばに座っています。"
+        }
+    ]
+
     for obj1 in list:
         for obj2 in list:
             if obj1 == obj2:
                 continue
 
-            # ボールを蹴っている・持っている・投げている
-            if obj1['物体'] == 'person' and obj2['物体'] == 'sports ball':
-                buttom_distance = get_buttom_distance(obj1['境界'].values(), obj2['境界'].values())
-                if buttom_distance <= 50:
-                    return '人がボールを蹴っています。'
-                else:
-                    if is_overlapping(obj1['境界'].values(), obj2['境界'].values(), 0.8):
-                        return '人がボールを持っています。'
-                    else:
-                        return '人がボールを投げています。'
-                
-            # 席についている・椅子に座っている
-            if obj1['物体'] == 'chair' and obj2['物体'] == 'person':
-                if is_overlapping(obj1['境界'].values(), obj2['境界'].values(), 0.8):
-                    for obj3 in list:
-                        if obj3['物体'] == 'dining table':
-                            if is_overlapping(obj3['境界'].values(), obj2['境界'].values(), 0.15):
-                                return '人が席についています。'
-                    return '人が椅子に座っています。'
+            for rule in rules:
+                if (obj1['物体'], obj2['物体']) == rule["対象物"]:
+                    if rule["判定"](obj1, obj2):
+                        if "追加判定" in rule:
+                            if rule["追加判定"](obj2, list):
+                                return rule["結果"][0]
+                            else:
+                                return rule["結果"][1]
+                        return rule["結果"]
 
-            # 車に乗っている・車のそばに立っている
-            if obj1['物体'] == 'car' and obj2['物体'] == 'person':
-                top_distance = get_top_distance(obj1['境界'].values(), obj2['境界'].values())
-                if top_distance >= 50:
-                    return '人が車のそばに立っています。'
-                else:
-                    if is_overlapping(obj1['境界'].values(), obj2['境界'].values(), 0.9):
-                        return '人が車に乗っています。'
-                    else:
-                        return '人が車のそばに座っています。'
-
-    return '分析に必要な検出結果が不十分です。他の画像を指定してください。'
+    return "分析に必要な検出結果が不十分です。他の画像を指定してください。"
 
 
 ############################################
