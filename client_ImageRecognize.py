@@ -6,7 +6,7 @@ server_url = 'http://127.0.0.1:60003/server_ImageRecognize'
 
 while(1):
     # 画像パスを指定
-    base_dir = '/home/porche1223/3-3___WebAPI画像処理システム/ImageRecognizeByWebAPI/WebAPI_Dataset/'
+    base_dir = '/home/porche1223/3-3___WebAPI画像認識システム/ImageRecognize_WebAPI/WebAPI_Dataset/'
     image = input('画像パスを入力してください(exitで退出)： ')
     if image == 'exit':
         break
