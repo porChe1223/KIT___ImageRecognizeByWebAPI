@@ -2,6 +2,9 @@
 # !pip install ultralytics
 
 import falcon
+import base64
+from io import BytesIO
+from PIL import Image
 from ultralytics import YOLO
 import json
 import math
@@ -212,18 +215,21 @@ def consider_description(list):
 ############################################
 class ImageRecognize(object):
     def on_post(self, req, res):
-        # 送られてきた画像パス名を取得
         params = req.media
-        print('受信したJSONデータ', params)
+        image_base64 = params.get('image')  # クライアントから送られてきたbase64エンコードされた画像
 
-        image_url = params.get('image')
-        print('受信した画像パス', image_url)
+        # base64エンコードされた画像をデコードしてPIL画像に変換
+        image_data = base64.b64decode(image_base64)
+        image = Image.open(BytesIO(image_data))
 
-        if(image_url):
-            # 画像内のオブジェクトを検出
-            results = model(image_url, save=True, show=True)
-            print('YOLOの返答', results)
+        if image:            
+            # 一時ファイルに保存
+            image.save('received_image.jpg')
 
+            # YOLOで画像を処理
+            results = model('received_image.jpg', save=True, show=True)
+            print('いいいい',results)
+            
             #resultsオブジェクトの情報をリスト形式で取得
             detected_objects = []
             for box in results[0].boxes.data.tolist():
@@ -238,7 +244,7 @@ class ImageRecognize(object):
                     '確率': label_confidence,
                     '境界': {'左端': x1, '上端': y1, '右端': x2, '下端': y2}
                 })
-            print(detected_objects)
+                print('ああああ',detected_objects)
 
             # 検出結果
             res_description = generate_description(detected_objects)
@@ -256,6 +262,7 @@ class ImageRecognize(object):
                 '厳選結果': res_select,
                 '分析結果': res_consider
             }
+            print('結果',res)
         else:
             res.status = falcon.HTTP_400
             res.media = {'error': '画像が指定されていません。'}

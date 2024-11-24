@@ -1,4 +1,5 @@
 import os
+import base64
 import requests
 
 # サーバIPアドレス
@@ -12,9 +13,12 @@ while(1):
         break
     image_path = os.path.join(base_dir, image)
 
+    with open(image_path, 'rb') as img_file:
+        image_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+
     # 送信データ
     post_data = {
-        'image': image_path
+        'image': image_base64
     }
 
     # 画像パス例
