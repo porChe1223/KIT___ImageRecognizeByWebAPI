@@ -223,6 +223,9 @@ class ImageRecognize(object):
         image = Image.open(BytesIO(image_data))
 
         if image:            
+            # 一時ファイルに保存
+            image.save('received_image.jpg')
+
             # YOLOで画像を処理
             results = model('received_image.jpg', save=True, show=True)
             print('results',results)
