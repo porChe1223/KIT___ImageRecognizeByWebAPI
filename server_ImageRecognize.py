@@ -223,12 +223,9 @@ class ImageRecognize(object):
         image = Image.open(BytesIO(image_data))
 
         if image:            
-            # 一時ファイルに保存
-            image.save('received_image.jpg')
-
             # YOLOで画像を処理
             results = model('received_image.jpg', save=True, show=True)
-            print('いいいい',results)
+            print('results',results)
             
             #resultsオブジェクトの情報をリスト形式で取得
             detected_objects = []
@@ -244,7 +241,7 @@ class ImageRecognize(object):
                     '確率': label_confidence,
                     '境界': {'左端': x1, '上端': y1, '右端': x2, '下端': y2}
                 })
-                print('ああああ',detected_objects)
+                print('認識した物体',detected_objects)
 
             # 検出結果
             res_description = generate_description(detected_objects)
