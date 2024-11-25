@@ -59,7 +59,7 @@ def generate_description(list):
 def select_objects(list):
     select_objects = []
     for obj in list:
-        if obj['確率'] >= 0.65:
+        if obj['確率'] >= 0.61:
             select_objects.append(obj)
 
     return select_objects
@@ -221,6 +221,10 @@ class ImageRecognize(object):
         # base64エンコードされた画像をデコードしてPIL画像に変換
         image_data = base64.b64decode(image_base64)
         image = Image.open(BytesIO(image_data))
+
+        # RGBA型に変換された画像をRGB型に変換
+        if image.mode == 'RGBA':
+            image = image.convert('RGB')
 
         if image:            
             # 一時ファイルに保存
