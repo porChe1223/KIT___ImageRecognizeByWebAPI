@@ -1,6 +1,3 @@
-# !pip install falcon
-# !pip install ultralytics
-
 import falcon
 import base64
 from io import BytesIO
