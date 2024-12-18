@@ -7,6 +7,7 @@ server_url = 'http://127.0.0.1:60003/server_ImageRecognize'
 
 # ベースディレクトリ
 base_dir = '/home/porche1223/KIT___WebAPI画像認識システム/KIT___ImageRecognize_WebAPI/WebAPI_Dataset/'
+model_dir = '/home/porche1223/KIT___WebAPI画像認識システム/KIT___ImageRecognize_WebAPI/'
 
 
 while True:
@@ -28,7 +29,6 @@ while True:
             break
 
         image_path = os.path.join(base_dir, image)
-
         with open(image_path, 'rb') as img_file:
             image_base64 = base64.b64encode(img_file.read()).decode('utf-8')
 
@@ -46,8 +46,8 @@ while True:
         if model == 'X':
             break
 
-        model_path = os.path.join(base_dir, model)
-        with open('MyModel.pt', 'rb') as model_file:
+        model_path = os.path.join(model_dir, model)
+        with open(model_path, 'rb') as model_file:
             model_base64 = base64.b64encode(model_file.read()).decode('utf-8')
 
         # 画像パスを指定
@@ -95,28 +95,24 @@ while True:
 
     # POSTリクエストの送信
     response = requests.post(server_url, json=post_data)
-    response_json = response.json()
+    print(response.json())
 
     #################
     # レスポンス受信 #
     #################
 
-    if mode == 'R':
-        print('検出結果： ', response_json['検出結果'])
-        print('予測結果： ', response_json['分析結果'])
-
-    elif mode == 'M':
-        print('検出結果： ', response_json['検出結果'])
-        print('予測結果： ', response_json['分析結果'])
+    if mode == 'R' or mode == 'M':
+        print('\n')
+        print('検出結果： ', response.json()['検出結果'])
+        print('予測結果： ', response.json()['分析結果'])
     
     elif mode == 'F':
-        if response.status_code == 200:
-            with open('MyModel.pt', 'wb') as f:
-                f.write(response.content)
-            print('ファインチューニングされたモデルがダウンロードされました: MyModel.pt')
-        else:
-            print('エラー: ', response.json().get('error', '不明なエラー'))
+        print('\n')
+        with open('MyModel.pt', 'wb') as f:
+            f.write(response.content)
+        print('ファインチューニングされたモデルがダウンロードされました: MyModel.pt')
 
+    print('\n')
     print('\n')
 
     # 画像パス例

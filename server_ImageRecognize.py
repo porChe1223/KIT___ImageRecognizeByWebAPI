@@ -283,7 +283,7 @@ class ImageRecognize(object):
         elif mode == 'M':
             # クライアントから送られてきたbase64エンコードされたモデル
             model_base64 = params.get('model')
-            if not image_base64:
+            if not model_base64:
                 res.status = falcon.HTTP_400
                 res.media = {'error': 'モデルが指定されていません。'}
                 return
@@ -373,17 +373,17 @@ class ImageRecognize(object):
             # モデルのファインチューニング
             try:
                 print('モデルのファインチューニング中')
-                res = model.train(data='coco8.yaml', epochs=100, imgsz=640)
+                model.train(data='coco8.yaml', epochs=100, imgsz=640)
                 print('モデルのファインチューニング完了')
 
                 # ファインチューニング後のモデルをクライアントに送信
-                new_model_path = 'runs/train/exp/weights/best.pt'
+                new_model_path = 'runs/detect/train/weights/best.pt'
                 if os.path.exists(new_model_path):
                     with open(new_model_path, 'rb') as f:
                         new_model_data = f.read()
                     res.data = new_model_data
                     res.content_type = 'application/octet-stream'
-                    res.downloadable_as = 'YourModel.pt'
+                    res.downloadable_as = 'MyModel.pt'
                 else:
                     res.status = falcon.HTTP_500
                     res.media = {'error': 'ファインチューニング後ファイルが見つかりません。'}
