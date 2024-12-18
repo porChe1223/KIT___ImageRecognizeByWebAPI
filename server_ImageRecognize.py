@@ -208,6 +208,7 @@ def consider_description(list):
     return "分析に必要な検出結果が不十分です。他の画像を指定してください。"
 
 
+
 #####################
 # システム（YOLOv11）#
 #####################
@@ -220,7 +221,8 @@ class ImageRecognize(object):
         # 画像認識 #
         ###########
         if mode == 'R':
-            image_base64 = params.get('image')  # クライアントから送られてきたbase64エンコードされた画像
+            # クライアントから送られてきたbase64エンコードされた画像
+            image_base64 = params.get('image')
             if not image_base64:
                 res.status = falcon.HTTP_400
                 res.media = {'error': '画像が指定されていません。'}
@@ -273,16 +275,90 @@ class ImageRecognize(object):
                 '厳選結果': res_select,
                 '分析結果': res_consider
             }
-            print('結果',res)
+            print('結果',res.media)
+
+        ###############################
+        # 自身のモデルを使用した画像認識 #
+        ###############################
+        elif mode == 'M':
+            # クライアントから送られてきたbase64エンコードされたモデル
+            model_base64 = params.get('model')
+            if not image_base64:
+                res.status = falcon.HTTP_400
+                res.media = {'error': 'モデルが指定されていません。'}
+                return
+            
+            # base64エンコードされたモデルをデコードして保存
+            model_data = base64.b64decode(model_base64)
+            model_path = 'received_model.pt'
+            with open(model_path, 'wb') as model_file:
+                model_file.write(model_data)
+            
+            # クライアントから送られてきたbase64エンコードされた画像
+            image_base64 = params.get('image')
+            if not image_base64:
+                res.status = falcon.HTTP_400
+                res.media = {'error': '画像が指定されていません。'}
+                return
+
+            # base64エンコードされた画像をデコードしてPIL画像に変換
+            image_data = base64.b64decode(image_base64)
+            image = Image.open(BytesIO(image_data))
+
+            # RGBA型に変換された画像をRGB型に変換
+            if image.mode == 'RGBA':
+                image = image.convert('RGB')
+         
+            # 一時ファイルに保存
+            image.save('received_image.jpg')
+
+            # YOLOで画像を処理
+            results = model('received_image.jpg', weights=model_path, save=True, show=True)
+            print('results',results)
+            
+            #resultsオブジェクトの情報をリスト形式で取得
+            detected_objects = []
+            for box in results[0].boxes.data.tolist():
+                label_index = int(box[5]) if len(box) > 5 else -1
+                label_name = results[0].names[label_index] if label_index in results[0].names else '不明'
+                label_confidence = box[4]
+                x1, y1, x2, y2 = box[:4]
+
+                # 検出物をリストに追加
+                detected_objects.append({
+                    '物体': label_name,
+                    '確率': label_confidence,
+                    '境界': {'左端': x1, '上端': y1, '右端': x2, '下端': y2}
+                })
+                print('認識した物体',detected_objects)
+
+            # 検出結果
+            res_description = generate_description(detected_objects)
+
+            # 厳選結果
+            selected_objects = select_objects(detected_objects)
+            res_select = select_objects_sentence(selected_objects)
+
+            # 分析結果
+            res_consider = consider_description(selected_objects)
+
+            # レスポンスデータの作成
+            res.media = {
+                '検出結果': res_description,
+                '厳選結果': res_select,
+                '分析結果': res_consider
+            }
+            print('結果',res.media)
 
         ######################
         # ファインチューニング #
         ######################
         elif mode == 'F':
+            # クライアントから送られてきたbase64エンコードされた画像群
             images_base64 = params.get('images')
             if not images_base64:
                 res.status = falcon.HTTP_400
-                res.media = {'error': 'ディレクトリが指定されていません。'}
+                res.media = {'error': '画像が指定されていません。'}
                 return
 
             # ディレクトリ内の画像を一時保存
@@ -318,7 +394,8 @@ class ImageRecognize(object):
 
         else:
             res.status = falcon.HTTP_400
-            res.media = {'error': '画像が指定されていません。'}
+            res.media = {'error': '無効なモードが指定されました。'}
+
 
 
 # リソース【/server_YOLOv11】 と　AppResource()を結びつける

@@ -10,11 +10,17 @@ base_dir = '/home/porche1223/KIT___WebAPI画像認識システム/KIT___ImageRec
 
 
 while True:
-     # モード選択
-    mode = input('モードを選択してください (R: 画像認識, F: ファインチューニング, X: 終了)： ')
+    #################
+    # リクエスト送信 #
+    #################
+
+    # モード選択
+    mode = input('モードを選択してください (R: 画像認識, M: MyModelで画像認識, F: ファインチューニング, X: 終了)： ')
     if mode == 'X':
         break
 
+
+    # 画像認識
     if mode == 'R':
         # 画像パスを指定
         image = input('画像パスを入力してください(X: 終了)： ')
@@ -32,8 +38,38 @@ while True:
             'image': image_base64
         }
 
+
+    # 自分のモデルで画像認識
+    elif mode == 'M':
+        # モデルパスを指定
+        model = input('モデルを入力してください(X: 終了)： ')
+        if model == 'X':
+            break
+
+        model_path = os.path.join(base_dir, model)
+        with open('MyModel.pt', 'rb') as model_file:
+            model_base64 = base64.b64encode(model_file.read()).decode('utf-8')
+
+        # 画像パスを指定
+        image = input('画像パスを入力してください(X: 終了)： ')
+        if image == 'X':
+            break
+
+        image_path = os.path.join(base_dir, image)
+        with open(image_path, 'rb') as img_file:
+            image_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+
+        # 送信データ
+        post_data = {
+            'mode': 'M',
+            'model': model_base64,
+            'image': image_base64
+        }
+
+
+    # ファインチューニング
     elif mode == 'F':
-        # ファインチューニングモード
+        # ディレクトリパスを指定
         dir_path = input('ディレクトリパスを入力してください(X: 終了)： ')
         if dir_path == 'X':
             break
@@ -57,19 +93,27 @@ while True:
         print('無効な選択です。もう一度選択してください。')
         continue
 
-
     # POSTリクエストの送信
     response = requests.post(server_url, json=post_data)
+    response_json = response.json()
+
+    #################
+    # レスポンス受信 #
+    #################
 
     if mode == 'R':
-        print('検出結果： ', response.json['検出結果'])
-        print('予測結果： ', response.json['分析結果'])
+        print('検出結果： ', response_json['検出結果'])
+        print('予測結果： ', response_json['分析結果'])
+
+    elif mode == 'M':
+        print('検出結果： ', response_json['検出結果'])
+        print('予測結果： ', response_json['分析結果'])
     
     elif mode == 'F':
         if response.status_code == 200:
-            with open('YourModel.pt', 'wb') as f:
+            with open('MyModel.pt', 'wb') as f:
                 f.write(response.content)
-            print('ファインチューニングされたモデルがダウンロードされました: YourModel.pt')
+            print('ファインチューニングされたモデルがダウンロードされました: MyModel.pt')
         else:
             print('エラー: ', response.json().get('error', '不明なエラー'))
 
