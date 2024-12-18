@@ -57,15 +57,21 @@ while True:
         print('無効な選択です。もう一度選択してください。')
         continue
 
+
     # POSTリクエストの送信
-    response = requests.post(server_url, json=post_data).json()
+    response = requests.post(server_url, json=post_data)
 
     if mode == 'R':
-        print('検出結果： ', response['検出結果'])
-        print('予測結果： ', response['分析結果'])
+        print('検出結果： ', response.json['検出結果'])
+        print('予測結果： ', response.json['分析結果'])
     
     elif mode == 'F':
-        print(response['message'])
+        if response.status_code == 200:
+            with open('YourModel.pt', 'wb') as f:
+                f.write(response.content)
+            print('ファインチューニングされたモデルがダウンロードされました: YourModel.pt')
+        else:
+            print('エラー: ', response.json().get('error', '不明なエラー'))
 
     print('\n')
 
