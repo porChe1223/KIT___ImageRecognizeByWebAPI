@@ -5,6 +5,7 @@ from PIL import Image
 from ultralytics import YOLO
 import json
 import math
+import os
 from wsgiref.simple_server import make_server
 
 # サーバを作成
@@ -207,63 +208,100 @@ def consider_description(list):
     return "分析に必要な検出結果が不十分です。他の画像を指定してください。"
 
 
-############################################
-# 画像認識システム（YOLOv11）              　#
-############################################
+#####################################
+# システム（YOLOv11）              　#
+#####################################
 class ImageRecognize(object):
     def on_post(self, req, res):
         params = req.media
-        image_base64 = params.get('image')  # クライアントから送られてきたbase64エンコードされた画像
+        mode = params.get('mode')
 
-        # base64エンコードされた画像をデコードしてPIL画像に変換
-        image_data = base64.b64decode(image_base64)
-        image = Image.open(BytesIO(image_data))
+        ###########
+        # 画像認識 #
+        ###########
+        if mode == 'R':
+            image_base64 = params.get('image')  # クライアントから送られてきたbase64エンコードされた画像
+            if not image_base64:
+                    res.status = falcon.HTTP_400
+                    res.media = {'error': '画像が指定されていません。'}
+                    return
 
-        # RGBA型に変換された画像をRGB型に変換
-        if image.mode == 'RGBA':
-            image = image.convert('RGB')
+            # base64エンコードされた画像をデコードしてPIL画像に変換
+            image_data = base64.b64decode(image_base64)
+            image = Image.open(BytesIO(image_data))
 
-        if image:            
-            # 一時ファイルに保存
-            image.save('received_image.jpg')
+            # RGBA型に変換された画像をRGB型に変換
+            if image.mode == 'RGBA':
+                image = image.convert('RGB')
 
-            # YOLOで画像を処理
-            results = model('received_image.jpg', save=True, show=True)
-            print('results',results)
-            
-            #resultsオブジェクトの情報をリスト形式で取得
-            detected_objects = []
-            for box in results[0].boxes.data.tolist():
-                label_index = int(box[5]) if len(box) > 5 else -1
-                label_name = results[0].names[label_index] if label_index in results[0].names else '不明'
-                label_confidence = box[4]
-                x1, y1, x2, y2 = box[:4]
+            if image:            
+                # 一時ファイルに保存
+                image.save('received_image.jpg')
 
-                # 検出物をリストに追加
-                detected_objects.append({
-                    '物体': label_name,
-                    '確率': label_confidence,
-                    '境界': {'左端': x1, '上端': y1, '右端': x2, '下端': y2}
-                })
-                print('認識した物体',detected_objects)
+                # YOLOで画像を処理
+                results = model('received_image.jpg', save=True, show=True)
+                print('results',results)
+                
+                #resultsオブジェクトの情報をリスト形式で取得
+                detected_objects = []
+                for box in results[0].boxes.data.tolist():
+                    label_index = int(box[5]) if len(box) > 5 else -1
+                    label_name = results[0].names[label_index] if label_index in results[0].names else '不明'
+                    label_confidence = box[4]
+                    x1, y1, x2, y2 = box[:4]
 
-            # 検出結果
-            res_description = generate_description(detected_objects)
+                    # 検出物をリストに追加
+                    detected_objects.append({
+                        '物体': label_name,
+                        '確率': label_confidence,
+                        '境界': {'左端': x1, '上端': y1, '右端': x2, '下端': y2}
+                    })
+                    print('認識した物体',detected_objects)
 
-            # 厳選結果
-            selected_objects = select_objects(detected_objects)
-            res_select = select_objects_sentence(selected_objects)
+                # 検出結果
+                res_description = generate_description(detected_objects)
 
-            # 分析結果
-            res_consider = consider_description(selected_objects)
+                # 厳選結果
+                selected_objects = select_objects(detected_objects)
+                res_select = select_objects_sentence(selected_objects)
 
-            # レスポンスデータの作成
-            res.media = {
-                '検出結果': res_description,
-                '厳選結果': res_select,
-                '分析結果': res_consider
-            }
-            print('結果',res)
+                # 分析結果
+                res_consider = consider_description(selected_objects)
+
+                # レスポンスデータの作成
+                res.media = {
+                    '検出結果': res_description,
+                    '厳選結果': res_select,
+                    '分析結果': res_consider
+                }
+                print('結果',res)
+
+        ######################
+        # ファインチューニング #
+        ######################
+        elif mode == 'F':
+            images_base64 = params.get('images')
+            if not images_base64:
+                res.status = falcon.HTTP_400
+                res.media = {'error': '画像が指定されていません。'}
+                return
+
+            # ディレクトリ内の画像を一時保存
+            os.makedirs('received_images', exist_ok=True)
+            for i, image_base64 in enumerate(images_base64):
+                image_data = base64.b64decode(image_base64)
+                image = Image.open(BytesIO(image_data))
+                if image.mode == 'RGBA':
+                    image = image.convert('RGB')
+                image.save(f'received_images/image_{i}.jpg')
+
+            # モデルのファインチューニング
+            print('モデルのファインチューニング中')
+            res = model.train(data='coco8.yaml', epochs=100, imgsz=640)
+            print('モデルのファインチューニング完了')
+
+            res.media = {'message': 'ファインチューニングが完了しました。'}
+
         else:
             res.status = falcon.HTTP_400
             res.media = {'error': '画像が指定されていません。'}
