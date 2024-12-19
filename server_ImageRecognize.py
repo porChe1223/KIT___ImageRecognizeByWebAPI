@@ -17,12 +17,6 @@ serverAPIname='/server_ImageRecognize' #サービスAPIの名前
 #falconAPIの初期化
 app = falcon.App()
 
-# # モデルのトレーニング
-# print('モデルのトレーニング中')
-# res = model.train(data='coco8.yaml', epochs=100, imgsz=640)
-# print('モデルのトレーニング完了')
-
-
 ###############################################
 # 検出結果　　　　　　　　　　　　　　　　　　    #
 # -検出した物体の位置・確率・名前を文にして出力　 #
