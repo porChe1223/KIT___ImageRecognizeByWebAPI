@@ -16,11 +16,6 @@ serverAPIname='/server_ImageRecognize' #サービスAPIの名前
 #falconAPIの初期化
 app = falcon.App()
 
-# モデルの選択
-print('モデル呼び出し中')
-model = YOLO('yolo11n.pt')
-print('モデル呼び出し完了')
-
 # # モデルのトレーニング
 # print('モデルのトレーニング中')
 # res = model.train(data='coco8.yaml', epochs=100, imgsz=640)
@@ -221,6 +216,11 @@ class ImageRecognize(object):
         # 画像認識 #
         ###########
         if mode == 'R':
+            # モデルの選択
+            print('モデル呼び出し中')
+            model = YOLO('yolo11n.pt')
+            print('モデル呼び出し完了')
+
             # クライアントから送られてきたbase64エンコードされた画像
             image_base64 = params.get('image')
             if not image_base64:
@@ -282,17 +282,15 @@ class ImageRecognize(object):
         ###############################
         elif mode == 'M':
             # クライアントから送られてきたbase64エンコードされたモデル
-            model_base64 = params.get('model')
-            if not model_base64:
+            model_path = params.get('model')
+            if not model_path:
                 res.status = falcon.HTTP_400
                 res.media = {'error': 'モデルが指定されていません。'}
                 return
             
-            # base64エンコードされたモデルをデコードして保存
-            model_data = base64.b64decode(model_base64)
-            model_path = 'received_model.pt'
-            with open(model_path, 'wb') as model_file:
-                model_file.write(model_data)
+            # ファインチューニング後のモデルを選択
+            model = YOLO(new_model_path)
+            print(f'ファインチューニング後のモデルをロードしました: {new_model_path}')
             
             # クライアントから送られてきたbase64エンコードされた画像
             image_base64 = params.get('image')
@@ -354,6 +352,11 @@ class ImageRecognize(object):
         # ファインチューニング #
         ######################
         elif mode == 'F':
+            # モデルの選択
+            print('モデル呼び出し中')
+            model = YOLO('yolo11n.pt')
+            print('モデル呼び出し完了')
+
             # クライアントから送られてきたbase64エンコードされた画像群
             images_base64 = params.get('images')
             if not images_base64:
@@ -373,17 +376,19 @@ class ImageRecognize(object):
             # モデルのファインチューニング
             try:
                 print('モデルのファインチューニング中')
-                model.train(data='coco8.yaml', epochs=100, imgsz=640)
+                results = model.train(data='coco8.yaml', epochs=100, imgsz=640)
                 print('モデルのファインチューニング完了')
 
+                # トレーニング結果のディレクトリを取得
+                results_dir = results.save_dir
+                print('aaaaa', results_dir)
+
                 # ファインチューニング後のモデルをクライアントに送信
-                new_model_path = 'runs/detect/train/weights/best.pt'
+                new_model_path = os.path.join(results_dir, 'weights/best.pt')  
+                print('sssss', new_model_path) 
                 if os.path.exists(new_model_path):
-                    with open(new_model_path, 'rb') as f:
-                        new_model_data = f.read()
-                    res.data = new_model_data
-                    res.content_type = 'application/octet-stream'
-                    res.downloadable_as = 'MyModel.pt'
+                    res.status = falcon.HTTP_200
+                    res.media = {'new_model': new_model_path}
                 else:
                     res.status = falcon.HTTP_500
                     res.media = {'error': 'ファインチューニング後ファイルが見つかりません。'}

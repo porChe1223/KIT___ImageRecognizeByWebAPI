@@ -108,9 +108,10 @@ while True:
     
     elif mode == 'F':
         print('\n')
-        with open('MyModel.pt', 'wb') as f:
-            f.write(response.content)
-        print('ファインチューニングされたモデルがダウンロードされました: MyModel.pt')
+        print('ファインチューニングされたモデルがダウンロードされました。')
+        print('サーバ上でのあなたのモデルの保存場所： ', response.json()['new_model'])
+        print('このパスはあなたのモデルを動かすために必要です。')
+        print('必ず保存しておいてください。')
 
     print('\n')
     print('\n')
