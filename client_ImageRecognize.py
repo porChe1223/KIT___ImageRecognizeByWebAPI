@@ -47,8 +47,6 @@ while True:
             break
 
         model_path = os.path.join(model_dir, model)
-        with open(model_path, 'rb') as model_file:
-            model_base64 = base64.b64encode(model_file.read()).decode('utf-8')
 
         # 画像パスを指定
         image = input('画像パスを入力してください(X: 終了)： ')
@@ -62,7 +60,7 @@ while True:
         # 送信データ
         post_data = {
             'mode': 'M',
-            'model': model_base64,
+            'model': model_path,
             'image': image_base64
         }
 

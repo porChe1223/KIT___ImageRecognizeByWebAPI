@@ -287,10 +287,11 @@ class ImageRecognize(object):
                 res.status = falcon.HTTP_400
                 res.media = {'error': 'モデルが指定されていません。'}
                 return
+            print('モデルパス',model_path)
             
             # ファインチューニング後のモデルを選択
-            model = YOLO(new_model_path)
-            print(f'ファインチューニング後のモデルをロードしました: {new_model_path}')
+            model = YOLO(f'{model_path}')
+            print(f'ファインチューニング後のモデルをロードしました: {model_path}')
             
             # クライアントから送られてきたbase64エンコードされた画像
             image_base64 = params.get('image')
@@ -311,7 +312,7 @@ class ImageRecognize(object):
             image.save('received_image.jpg')
 
             # YOLOで画像を処理
-            results = model('received_image.jpg', weights=model_path, save=True, show=True)
+            results = model('received_image.jpg', save=True, show=True)
             print('results',results)
             
             #resultsオブジェクトの情報をリスト形式で取得
@@ -381,11 +382,9 @@ class ImageRecognize(object):
 
                 # トレーニング結果のディレクトリを取得
                 results_dir = results.save_dir
-                print('aaaaa', results_dir)
 
                 # ファインチューニング後のモデルをクライアントに送信
                 new_model_path = os.path.join(results_dir, 'weights/best.pt')  
-                print('sssss', new_model_path) 
                 if os.path.exists(new_model_path):
                     res.status = falcon.HTTP_200
                     res.media = {'new_model': new_model_path}
