@@ -371,7 +371,7 @@ class ImageRecognize(object):
             for i, image_base64 in enumerate(images_base64):
                 image_data = base64.b64decode(image_base64)
                 image = Image.open(BytesIO(image_data))
-                
+
                 if image.mode == 'RGBA':
                     image = image.convert('RGB')
                 image.save(f'received_images/image_{i}.jpg')
@@ -379,7 +379,7 @@ class ImageRecognize(object):
             # yamlファイルを作成
             yaml_content = {
                 'path': 'received_images',
-                'train': 'train',
+                'train': 'received_images',
                 'val': 'val',
                 'nc': 80,  # クラス数（COCOデータセットのクラス数）
                 'names': {
@@ -397,6 +397,7 @@ class ImageRecognize(object):
                 }
             }
             yaml_path = os.path.join('received_images', 'received_images.yaml')
+            print('yaml_path',yaml_path)
 
             with open(yaml_path, 'w') as yaml_file:
                 yaml.dump(yaml_content, yaml_file)
