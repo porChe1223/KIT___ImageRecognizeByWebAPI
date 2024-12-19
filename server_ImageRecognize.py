@@ -1,6 +1,3 @@
-# !pip install falcon
-# !pip install ultralytics
-
 import falcon
 import base64
 from io import BytesIO
@@ -8,6 +5,7 @@ from PIL import Image
 from ultralytics import YOLO
 import json
 import math
+import os
 from wsgiref.simple_server import make_server
 
 # サーバを作成
@@ -17,11 +15,6 @@ serverAPIname='/server_ImageRecognize' #サービスAPIの名前
 
 #falconAPIの初期化
 app = falcon.App()
-
-# モデルの選択
-print('モデル呼び出し中')
-model = YOLO('yolo11n.pt')
-print('モデル呼び出し完了')
 
 # # モデルのトレーニング
 # print('モデルのトレーニング中')
@@ -210,23 +203,39 @@ def consider_description(list):
     return "分析に必要な検出結果が不十分です。他の画像を指定してください。"
 
 
-############################################
-# 画像認識システム（YOLOv11）              　#
-############################################
+
+#####################
+# システム（YOLOv11）#
+#####################
 class ImageRecognize(object):
     def on_post(self, req, res):
         params = req.media
-        image_base64 = params.get('image')  # クライアントから送られてきたbase64エンコードされた画像
+        mode = params.get('mode')
 
-        # base64エンコードされた画像をデコードしてPIL画像に変換
-        image_data = base64.b64decode(image_base64)
-        image = Image.open(BytesIO(image_data))
+        ###########
+        # 画像認識 #
+        ###########
+        if mode == 'R':
+            # モデルの選択
+            print('モデル呼び出し中')
+            model = YOLO('yolo11n.pt')
+            print('モデル呼び出し完了')
 
-        # RGBA型に変換された画像をRGB型に変換
-        if image.mode == 'RGBA':
-            image = image.convert('RGB')
+            # クライアントから送られてきたbase64エンコードされた画像
+            image_base64 = params.get('image')
+            if not image_base64:
+                res.status = falcon.HTTP_400
+                res.media = {'error': '画像が指定されていません。'}
+                return
 
-        if image:            
+            # base64エンコードされた画像をデコードしてPIL画像に変換
+            image_data = base64.b64decode(image_base64)
+            image = Image.open(BytesIO(image_data))
+
+            # RGBA型に変換された画像をRGB型に変換
+            if image.mode == 'RGBA':
+                image = image.convert('RGB')
+         
             # 一時ファイルに保存
             image.save('received_image.jpg')
 
@@ -266,10 +275,131 @@ class ImageRecognize(object):
                 '厳選結果': res_select,
                 '分析結果': res_consider
             }
-            print('結果',res)
+            print('結果',res.media)
+
+        ###############################
+        # 自身のモデルを使用した画像認識 #
+        ###############################
+        elif mode == 'M':
+            # クライアントから送られてきたbase64エンコードされたモデル
+            model_path = params.get('model')
+            if not model_path:
+                res.status = falcon.HTTP_400
+                res.media = {'error': 'モデルが指定されていません。'}
+                return
+            print('モデルパス',model_path)
+            
+            # ファインチューニング後のモデルを選択
+            model = YOLO(f'{model_path}')
+            print(f'ファインチューニング後のモデルをロードしました: {model_path}')
+            
+            # クライアントから送られてきたbase64エンコードされた画像
+            image_base64 = params.get('image')
+            if not image_base64:
+                res.status = falcon.HTTP_400
+                res.media = {'error': '画像が指定されていません。'}
+                return
+
+            # base64エンコードされた画像をデコードしてPIL画像に変換
+            image_data = base64.b64decode(image_base64)
+            image = Image.open(BytesIO(image_data))
+
+            # RGBA型に変換された画像をRGB型に変換
+            if image.mode == 'RGBA':
+                image = image.convert('RGB')
+         
+            # 一時ファイルに保存
+            image.save('received_image.jpg')
+
+            # YOLOで画像を処理
+            results = model('received_image.jpg', save=True, show=True)
+            print('results',results)
+            
+            #resultsオブジェクトの情報をリスト形式で取得
+            detected_objects = []
+            for box in results[0].boxes.data.tolist():
+                label_index = int(box[5]) if len(box) > 5 else -1
+                label_name = results[0].names[label_index] if label_index in results[0].names else '不明'
+                label_confidence = box[4]
+                x1, y1, x2, y2 = box[:4]
+
+                # 検出物をリストに追加
+                detected_objects.append({
+                    '物体': label_name,
+                    '確率': label_confidence,
+                    '境界': {'左端': x1, '上端': y1, '右端': x2, '下端': y2}
+                })
+                print('認識した物体',detected_objects)
+
+            # 検出結果
+            res_description = generate_description(detected_objects)
+
+            # 厳選結果
+            selected_objects = select_objects(detected_objects)
+            res_select = select_objects_sentence(selected_objects)
+
+            # 分析結果
+            res_consider = consider_description(selected_objects)
+
+            # レスポンスデータの作成
+            res.media = {
+                '検出結果': res_description,
+                '厳選結果': res_select,
+                '分析結果': res_consider
+            }
+            print('結果',res.media)
+
+        ######################
+        # ファインチューニング #
+        ######################
+        elif mode == 'F':
+            # モデルの選択
+            print('モデル呼び出し中')
+            model = YOLO('yolo11n.pt')
+            print('モデル呼び出し完了')
+
+            # クライアントから送られてきたbase64エンコードされた画像群
+            images_base64 = params.get('images')
+            if not images_base64:
+                res.status = falcon.HTTP_400
+                res.media = {'error': '画像が指定されていません。'}
+                return
+
+            # ディレクトリ内の画像を一時保存
+            os.makedirs('received_images', exist_ok=True)
+            for i, image_base64 in enumerate(images_base64):
+                image_data = base64.b64decode(image_base64)
+                image = Image.open(BytesIO(image_data))
+                if image.mode == 'RGBA':
+                    image = image.convert('RGB')
+                image.save(f'received_images/image_{i}.jpg')
+
+            # モデルのファインチューニング
+            try:
+                print('モデルのファインチューニング中')
+                results = model.train(data='coco8.yaml', epochs=100, imgsz=640)
+                print('モデルのファインチューニング完了')
+
+                # トレーニング結果のディレクトリを取得
+                results_dir = results.save_dir
+
+                # ファインチューニング後のモデルをクライアントに送信
+                new_model_path = os.path.join(results_dir, 'weights/best.pt')  
+                if os.path.exists(new_model_path):
+                    res.status = falcon.HTTP_200
+                    res.media = {'new_model': new_model_path}
+                else:
+                    res.status = falcon.HTTP_500
+                    res.media = {'error': 'ファインチューニング後ファイルが見つかりません。'}
+                    
+            except Exception as e:
+                res.status = falcon.HTTP_500
+                res.media = {'error': f'ファインチューニング中にエラーが発生しました: {str(e)}'}
+
         else:
             res.status = falcon.HTTP_400
-            res.media = {'error': '画像が指定されていません。'}
+            res.media = {'error': '無効なモードが指定されました。'}
+
 
 
 # リソース【/server_YOLOv11】 と　AppResource()を結びつける
@@ -277,7 +407,7 @@ app.add_route(serverAPIname, ImageRecognize())
 
 if __name__ == '__main__':  #main処理
     with make_server('', serverPort, app) as httpd:
-        print('- アクセスURL ->  http://{}:{}{}'.format(serverIPAddress, serverPort,serverAPIname))
+        print('- アクセスURL ->  http://{}:{}{}'.format(serverIPAddress, serverPort, serverAPIname))
     
         httpd.serve_forever() #ずっとサーバを起動しておく
 
