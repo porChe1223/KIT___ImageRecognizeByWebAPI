@@ -113,13 +113,3 @@ while True:
 
     print('\n')
     print('\n')
-
-    # 画像パス例
-    # kicking_ball.jpeg
-    # holding_ball.jpg
-    # throwing_ball.jpg
-    # person_chair.jpg
-    # person_table_chair.jpg
-    # standing_near_car.jpg
-    # sitting_near_car.jpg
-    # riding_car.jpg
