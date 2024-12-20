@@ -404,7 +404,7 @@ class ImageRecognize(object):
             # モデルのファインチューニング
             try:
                 print('モデルのファインチューニング中')
-                results = model.train(data=yaml_path, epochs=100, imgsz=640)
+                results = model.train(data='coco8.yaml', epochs=100, imgsz=640)
                 print('モデルのファインチューニング完了')
 
                 # トレーニング結果のディレクトリを取得
